@@ -1,62 +1,114 @@
 # bilibili-downloader
 
-通过 B站官方 Web API 直接获取 DASH 视频 / 音频流，并用 ffmpeg 无损合并，将 B站视频下载到本地，保持最高可用画质。
+> Download Bilibili (B站) videos to local files at the highest available quality — by calling
+> Bilibili's public web APIs and losslessly muxing the DASH streams with ffmpeg.
+> Structured as a **portable skill** that works with WorkBuddy, Claude Code, Cursor, Cline,
+> and any agent capable of running Python + ffmpeg.
 
-Download Bilibili videos to local files at the highest available quality by calling Bilibili's public web APIs and muxing the DASH streams with ffmpeg (no re-encoding).
+## About
 
-## 为什么不用 yt-dlp / you-get
+`bilibili-downloader` is a small, dependency-free toolkit that grabs Bilibili video/audio
+streams directly from the site's official player APIs and merges them locally with ffmpeg
+(`-c copy`, no re-encoding). It sidesteps the `HTTP 412` anti-crawl blocks that break
+`yt-dlp` and `you-get`, and ships as a reusable **skill** usable across multiple AI coding
+agents. Anonymous downloads cap at 480P; a login `SESSDATA` cookie unlocks up to 1080P.
 
-B站对常见下载器返回 **HTTP 412**（反爬）。本工具直接调用公开 API（配合浏览器 UA + Referer），规避该限制，稳定可取流。
+## Why not yt-dlp / you-get?
 
-## 功能
+Bilibili returns **HTTP 412 (Precondition Failed)** to common downloaders because of
+aggressive anti-crawling. This tool calls the public APIs directly (with a normal browser
+`User-Agent` + `Referer`), which is far more reliable.
 
-- 单视频 / 批量下载（命令行参数，或每行一个 URL/BVID 的文本文件）
-- 支持登录 Cookie（`SESSDATA`）解锁最高 **1080P**（匿名仅 480P）
-- 自动获取 `cid`、自动选择最高带宽的 H.264 (AVC) 视频流
-- ffmpeg 流拷贝（`-c copy`）合并，无重编码、无画质损失
-- 已存在文件经 `ffprobe` 校验后跳过，可安全重复运行
+## Features
 
-## 依赖
+- Single video or batch download (CLI args, or a text file with one URL/BVID per line)
+- Optional login cookie (`SESSDATA`) to unlock up to 1080P (anonymous is capped at 480P)
+- Auto-resolves `cid`, auto-selects the highest-bandwidth H.264 (AVC) video stream
+- ffmpeg stream-copy muxing — **no re-encoding, no quality loss**
+- Already-downloaded files are verified with `ffprobe` and skipped, so re-runs are safe
 
-- Python 3.7+（仅标准库，无需 `pip install`）
-- [ffmpeg](https://ffmpeg.org/)（需在 `PATH` 中，仅用于无损封装）
+## Requirements
 
-## 用法
+- Python 3.7+ (standard library only — no `pip install` needed)
+- [ffmpeg](https://ffmpeg.org/) on `PATH` (used only for lossless muxing)
+
+## Install (standalone / manual use)
 
 ```bash
-# 单个视频（匿名 → 最高 480P）
+git clone https://github.com/houguofei/bilibili-downloader.git
+cd bilibili-downloader
+# ensure ffmpeg is installed, then run:
+python scripts/download_bilibili.py "https://www.bilibili.com/video/BV1vHxXefEEV"
+```
+
+## Usage
+
+```bash
+# Single video (anonymous → up to 480P)
 python scripts/download_bilibili.py "https://www.bilibili.com/video/BV1vHxXefEEV"
 
-# 多个视频 / BVID
+# Multiple videos / BVIDs
 python scripts/download_bilibili.py BV1vHxXefEEV BV17rtyz3EA9
 
-# 从文本文件批量（每行一个，# 开头为注释）
+# Batch from a text file (one URL/BVID per line, # for comments)
 python scripts/download_bilibili.py -f urls.txt
 
-# 带登录 Cookie 解锁 1080P
+# With a login cookie to unlock 1080P
 python scripts/download_bilibili.py -c "SESSDATA=xxxx; bili_jct=yyyy" BV1vHxXefEEV
 
-# 通过环境变量传入 Cookie（避免写入 shell 历史）
+# Via environment variable (keeps the cookie out of shell history)
 export BILI_COOKIE="SESSDATA=xxxx; bili_jct=yyyy"
 python scripts/download_bilibili.py BV1vHxXefEEV
 
-# 指定输出目录
+# Custom output directory
 python scripts/download_bilibili.py -d ./downloads BV1vHxXefEEV
 ```
 
-输出文件命名：`<标题>__<BVID>.mp4`。
+Output files are named `<sanitized-title>__<BVID>.mp4`.
 
-### 获取登录 Cookie
+### Getting a login cookie (for 1080P)
 
-1. 浏览器登录 bilibili.com 后按 F12 → Application → Cookies（bilibili.com）
-2. 复制 `SESSDATA`（以及可选的 `bili_jct`、`DedeUserID`）
-3. 原样粘贴，`SESSDATA` 中的 `%2C` / `%3D` 编码**不要解码**
-4. 1080P60 / 4K 需要大会员账号的 `SESSDATA`
+1. Open bilibili.com while logged in, press F12 → Application → Cookies (bilibili.com).
+2. Copy `SESSDATA` (and optionally `bili_jct`, `DedeUserID`).
+3. Paste it **as-is** — the `%2C` / `%3D` encoding inside `SESSDATA` must NOT be decoded.
+4. 1080P60 / 4K require a 大会员 (premium) account's `SESSDATA`.
 
-## 作为 WorkBuddy Skill 使用
+## Install as an Agent Skill
 
-将本仓库内容放入 `~/.workbuddy/skills/bilibili-downloader/`（保持 `SKILL.md`、`scripts/`、`references/` 结构），即可被 WorkBuddy 自动识别加载。
+This repository is already structured as a portable skill:
 
-## 许可证
+```
+bilibili-downloader/
+├── SKILL.md                 # agent instructions (trigger, workflow, quality rules)
+├── scripts/download_bilibili.py
+├── references/api_reference.md
+├── README.md
+└── LICENSE
+```
+
+Copy the whole folder into your agent's skills directory. Examples:
+
+**WorkBuddy**
+```bash
+mkdir -p ~/.workbuddy/skills
+cp -r bilibili-downloader ~/.workbuddy/skills/bilibili-downloader
+```
+
+**Claude Code** (skills directory)
+```bash
+mkdir -p ~/.claude/skills
+cp -r bilibili-downloader ~/.claude/skills/bilibili-downloader
+```
+
+**Cursor / Cline / other VS Code-based agents**
+Copy the folder into the agent's skills or custom-instructions path (e.g.
+`.cursor/skills/`, or your project's agent rules directory), then reference `SKILL.md`
+as an instruction source. Exact paths vary by version — consult your agent's docs.
+
+**Any agent (generic)**
+Point the agent at `SKILL.md` as a system instruction; the agent can then execute
+`scripts/download_bilibili.py` directly. No special plugin system required.
+
+## License
 
 [MIT](LICENSE)
