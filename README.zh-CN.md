@@ -1,5 +1,7 @@
 # bilibili-downloader
 
+🌐 [English](README.md)
+
 > 通过 B站官方 Web API 直接获取 DASH 视频 / 音频流，并用 ffmpeg 无损合并，将 B站视频下载到本地，保持最高可用画质。
 > 本仓库是一个**可移植的 Skill**，适用于 WorkBuddy、Claude Code、Cursor、Cline 以及任何能运行 Python + ffmpeg 的 agent。
 

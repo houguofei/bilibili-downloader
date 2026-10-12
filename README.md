@@ -1,5 +1,7 @@
 # bilibili-downloader
 
+🇨🇳 [中文文档](README.zh-CN.md)
+
 > Download Bilibili (B站) videos to local files at the highest available quality — by calling
 > Bilibili's public web APIs and losslessly muxing the DASH streams with ffmpeg.
 > Structured as a **portable skill** that works with WorkBuddy, Claude Code, Cursor, Cline,
